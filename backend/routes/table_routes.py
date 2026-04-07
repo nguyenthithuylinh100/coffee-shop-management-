@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from database.db import db
 from models.table import Table
+from models.bill import Bill
 from middleware.auth_middleware import require_auth, require_roles
 
 table_bp = Blueprint('tables', __name__)
@@ -9,7 +10,26 @@ table_bp = Blueprint('tables', __name__)
 @require_auth
 def get_tables():
     tables = Table.query.order_by(Table.tableNumber).all()
-    return jsonify([t.to_dict() for t in tables]), 200
+    table_ids = [t.tableID for t in tables]
+
+    # Source of truth for UI availability: an existing Unpaid bill means occupied.
+    occupied_ids = set()
+    if table_ids:
+        rows = (
+            db.session.query(Bill.tableID)
+            .filter(Bill.tableID.in_(table_ids), Bill.status == 'Unpaid')
+            .distinct()
+            .all()
+        )
+        occupied_ids = {row[0] for row in rows}
+
+    payload = []
+    for t in tables:
+        item = t.to_dict()
+        item['status'] = 'Occupied' if t.tableID in occupied_ids else 'Available'
+        payload.append(item)
+
+    return jsonify(payload), 200
 
 @table_bp.route('', methods=['POST'])
 @require_roles('Manager')

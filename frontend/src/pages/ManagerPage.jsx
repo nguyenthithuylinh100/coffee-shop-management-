@@ -756,148 +756,254 @@ function OrderHistoryTab() {
 //  UC11: View Report
 // ══════════════════════════════════════════════════════════
 function ReportsTab() {
-  const [reports, setReports] = useState([])
-  const [summary, setSummary] = useState(null)
-  const [form, setForm]       = useState({ type: 'daily', period_start: '', period_end: '', type_report: '' })
-  const [loading, setLoading] = useState(false)
-  const [toast, setToast]     = useState('')
+  const today = new Date().toISOString().split('T')[0]
+  const month1 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
-  const load = async () => {
-    const [r, s] = await Promise.all([api.get('/reports'), api.get('/reports/summary')])
-    setReports(r.data)
-    setSummary(s.data)
-  }
-  useEffect(() => { load() }, [])
-  const showToast = msg => { setToast(msg); setTimeout(() => setToast(''), 3000) }
+  const [summary, setSummary]   = useState(null)
+  const [daily, setDaily]       = useState([])
+  const [hourly, setHourly]     = useState([])
+  const [topItems, setTopItems] = useState([])
+  const [catRev, setCatRev]     = useState([])
+  const [form, setForm]         = useState({ from: month1, to: today })
+  const [loading, setLoading]   = useState(false)
+  const [reports, setReports]   = useState([])
+  const [genForm, setGenForm]   = useState({ type_report:'', period_start: month1, period_end: today })
+  const [toast, setToast]       = useState('')
 
-  const handleTypeChange = type => {
-    const today = new Date()
-    if (type === 'daily') {
-      const d = today.toISOString().split('T')[0]
-      setForm(f => ({ ...f, type, period_start: d, period_end: d,
-        type_report: `Ngày ${today.toLocaleDateString('vi-VN')}` }))
-    } else {
-      const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0')
-      const lastDay = new Date(y, today.getMonth() + 1, 0).toISOString().split('T')[0]
-      setForm(f => ({ ...f, type,
-        period_start: `${y}-${m}-01`, period_end: lastDay,
-        type_report: `Tháng ${today.getMonth() + 1}/${y}` }))
-    }
+  const showToast = m => { setToast(m); setTimeout(() => setToast(''), 3000) }
+
+  const loadAll = async (f = form) => {
+    setLoading(true)
+    try {
+      const qs = `?from=${f.from}&to=${f.to}`
+      const [s, d, h, t, c, r] = await Promise.all([
+        api.get('/reports/summary'),
+        api.get(`/reports/revenue/daily${qs}`),
+        api.get(`/reports/revenue/hourly${qs}`),
+        api.get(`/reports/top-items${qs}&limit=8`),
+        api.get(`/reports/revenue/category${qs}`),
+        api.get('/reports'),
+      ])
+      setSummary(s.data); setDaily(d.data); setHourly(h.data)
+      setTopItems(t.data); setCatRev(c.data); setReports(r.data)
+    } catch(err) { showToast('❌ Lỗi tải báo cáo') }
+    finally { setLoading(false) }
   }
+
+  useEffect(() => { loadAll() }, [])
 
   const handleGenerate = async e => {
     e.preventDefault()
-    setLoading(true)
     try {
-      await api.post('/reports', {
-        period_start: form.period_start,
-        period_end:   form.period_end,
-        type_report:  form.type_report,
-      })
-      showToast('✅ Tạo báo cáo thành công')
-      load()
-    } catch (err) {
-      showToast('❌ ' + (err.response?.data?.error || 'Lỗi'))
-    } finally {
-      setLoading(false)
-    }
+      await api.post('/reports', genForm)
+      showToast('✅ Đã tạo báo cáo'); loadAll()
+    } catch(err) { showToast('❌ ' + (err.response?.data?.error || 'Lỗi')) }
   }
+
+  // Simple bar chart using divs
+  const BarChart = ({ data, labelKey, valueKey, color='bg-amber-500', formatVal=v=>v }) => {
+    const max = Math.max(...data.map(d=>d[valueKey]), 1)
+    return (
+      <div className="space-y-1.5">
+        {data.map((d, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 w-16 shrink-0 text-right">{d[labelKey]}</span>
+            <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+              <div className={`h-full ${color} rounded-full flex items-center justify-end pr-1 transition-all`}
+                style={{ width:`${Math.max(2,(d[valueKey]/max)*100)}%` }}>
+                <span className="text-xs text-white font-semibold truncate">{formatVal(d[valueKey])}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const totalRevenue = daily.reduce((s,d)=>s+d.revenue,0)
+  const totalOrders  = daily.reduce((s,d)=>s+d.bills,0)
+  const peakHour     = hourly.reduce((a,b)=>b.orders>a.orders?b:a, {hour:0,orders:0})
 
   return (
     <div>
       <Toast msg={toast} />
+      <h2 className="font-bold text-gray-800 mb-4">Báo Cáo & Thống Kê</h2>
 
+      {/* Today summary */}
       {summary && (
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { label: 'Doanh thu hôm nay', value: fmt(summary.revenue_today),  icon: '💰', color: 'text-amber-700' },
-            { label: 'Bill đã thanh toán', value: summary.bills_paid_today,    icon: '🧾', color: 'text-blue-700'  },
-            { label: 'Orders hôm nay',     value: summary.orders_today,        icon: '📋', color: 'text-emerald-700' },
-          ].map(s => (
+            { label:'Doanh thu hôm nay', v:fmt(summary.revenue_today), icon:'💰', c:'text-amber-700' },
+            { label:'Bill đã TT hôm nay', v:summary.bills_paid_today,  icon:'🧾', c:'text-blue-700'  },
+            { label:'Orders hôm nay',     v:summary.orders_today,       icon:'📋', c:'text-emerald-700' },
+          ].map(s=>(
             <div key={s.label} className="card text-center">
               <div className="text-xl mb-1">{s.icon}</div>
-              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+              <p className={`text-xl font-bold ${s.c}`}>{s.v}</p>
               <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
       )}
 
-      <div className="card mb-4 border-amber-200">
-        <h3 className="font-bold text-gray-800 mb-3">📊 Tạo báo cáo mới</h3>
-        <div className="flex gap-2 mb-3">
-          {[
-            { key: 'daily',   label: '📅 Theo ngày' },
-            { key: 'monthly', label: '📆 Theo tháng' },
-          ].map(t => (
-            <button key={t.key} type="button"
-              onClick={() => handleTypeChange(t.key)}
-              className={`flex-1 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
-                form.type === t.key
-                  ? 'border-amber-500 bg-amber-50 text-amber-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >{t.label}</button>
-          ))}
+      {/* Date range filter */}
+      <div className="card mb-6 border-amber-200">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Chọn kỳ phân tích</p>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Từ ngày</label>
+            <input type="date" className="input-field" value={form.from} max={today}
+              onChange={e => setForm(f=>({...f,from:e.target.value}))} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Đến ngày</label>
+            <input type="date" className="input-field" value={form.to} max={today}
+              onChange={e => setForm(f=>({...f,to:e.target.value}))} />
+          </div>
         </div>
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { label:'Tháng này', from:month1, to:today },
+            { label:'7 ngày',   from:new Date(Date.now()-6*864e5).toISOString().split('T')[0], to:today },
+            { label:'30 ngày',  from:new Date(Date.now()-29*864e5).toISOString().split('T')[0], to:today },
+          ].map(p=>(
+            <button key={p.label} type="button"
+              onClick={() => { setForm({from:p.from,to:p.to}); loadAll({from:p.from,to:p.to}) }}
+              className="btn-ghost text-xs py-1 px-3 border border-gray-200 rounded-lg">{p.label}</button>
+          ))}
+          <button onClick={() => loadAll(form)} disabled={loading}
+            className="btn-primary text-sm ml-auto">{loading?'⏳ Đang tải...':'📊 Xem báo cáo'}</button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-10 text-gray-400">⏳ Đang tải dữ liệu...</div>
+      ) : (
+        <div className="space-y-6">
+
+          {/* Period summary */}
+          {daily.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="card text-center">
+                <p className="text-xl font-bold text-amber-700">{fmt(totalRevenue)}</p>
+                <p className="text-xs text-gray-500">Tổng doanh thu</p>
+              </div>
+              <div className="card text-center">
+                <p className="text-xl font-bold text-blue-700">{totalOrders}</p>
+                <p className="text-xs text-gray-500">Tổng bill</p>
+              </div>
+              <div className="card text-center">
+                <p className="text-xl font-bold text-emerald-700">{peakHour.label||`${peakHour.hour}:00`}</p>
+                <p className="text-xs text-gray-500">Giờ cao điểm</p>
+              </div>
+            </div>
+          )}
+
+          {/* Daily revenue chart */}
+          {daily.length > 0 && (
+            <div className="card">
+              <h3 className="font-bold text-gray-800 mb-4">📈 Doanh thu theo ngày</h3>
+              <BarChart data={daily} labelKey="day" valueKey="revenue"
+                color="bg-amber-500" formatVal={v=>fmt(v)} />
+            </div>
+          )}
+
+          {/* Two-col: top items + category */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {topItems.length > 0 && (
+              <div className="card">
+                <h3 className="font-bold text-gray-800 mb-4">🏆 Món bán chạy</h3>
+                <BarChart data={topItems} labelKey="name" valueKey="qty_sold"
+                  color="bg-blue-500" formatVal={v=>`${v} ly`} />
+              </div>
+            )}
+
+            {catRev.length > 0 && (
+              <div className="card">
+                <h3 className="font-bold text-gray-800 mb-4">📂 Doanh thu theo danh mục</h3>
+                <div className="space-y-2">
+                  {catRev.map((c,i) => (
+                    <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{c.category}</p>
+                        <p className="text-xs text-gray-500">{c.qty_sold} phần</p>
+                      </div>
+                      <p className="font-bold text-amber-700 text-sm">{fmt(c.revenue)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Peak time chart */}
+          {hourly.length > 0 && (
+            <div className="card">
+              <h3 className="font-bold text-gray-800 mb-4">⏰ Giờ cao điểm</h3>
+              <BarChart data={hourly} labelKey="label" valueKey="orders"
+                color="bg-emerald-500" formatVal={v=>`${v} đơn`} />
+            </div>
+          )}
+
+          {/* No data message */}
+          {daily.length === 0 && topItems.length === 0 && (
+            <div className="text-center py-10 text-gray-400 card">
+              <div className="text-4xl mb-2">📊</div>
+              <p className="font-medium">Chưa có dữ liệu trong khoảng thời gian này</p>
+              <p className="text-xs mt-1">Hãy chọn khoảng thời gian khác hoặc tạo thêm đơn hàng</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Generate & save report */}
+      <div className="card mt-6 border-amber-200">
+        <h3 className="font-bold text-gray-800 mb-3">💾 Tạo & Lưu Báo Cáo</h3>
         <form onSubmit={handleGenerate} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Từ ngày</label>
-              <input type="date" className="input-field" value={form.period_start}
-                onChange={e => setForm(f => ({ ...f, period_start: e.target.value }))} required />
+              <input type="date" className="input-field" value={genForm.period_start} max={today}
+                onChange={e=>setGenForm(f=>({...f,period_start:e.target.value}))} required />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Đến ngày</label>
-              <input type="date" className="input-field" value={form.period_end}
-                onChange={e => setForm(f => ({ ...f, period_end: e.target.value }))} required />
+              <input type="date" className="input-field" value={genForm.period_end} max={today}
+                onChange={e=>setGenForm(f=>({...f,period_end:e.target.value}))} required />
             </div>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-600 mb-1 block">Tên báo cáo</label>
-            <input className="input-field" value={form.type_report}
-              onChange={e => setForm(f => ({ ...f, type_report: e.target.value }))} required
-              placeholder="VD: Tháng 4/2026" />
+            <input className="input-field" value={genForm.type_report}
+              onChange={e=>setGenForm(f=>({...f,type_report:e.target.value}))}
+              placeholder="VD: Tháng 4/2026" required />
           </div>
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"/>
-                Đang tạo...
-              </span>
-            ) : '📊 Tạo báo cáo'}
-          </button>
+          <button type="submit" className="btn-primary w-full">💾 Lưu báo cáo</button>
         </form>
       </div>
 
-      <h3 className="font-bold text-gray-700 mb-2">Lịch sử báo cáo</h3>
-      {reports.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <div className="text-3xl mb-2">📂</div>
-          <p className="text-sm">Chưa có báo cáo nào</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {reports.map(r => (
-            <div key={r.report_id} className="card">
-              <div className="flex justify-between items-start">
+      {/* Saved reports list */}
+      {reports.length > 0 && (
+        <div className="mt-4">
+          <h3 className="font-bold text-gray-700 mb-2">Báo cáo đã lưu</h3>
+          <div className="space-y-2">
+            {reports.map(r=>(
+              <div key={r.report_id} className="card flex justify-between items-center">
                 <div>
-                  <p className="font-bold text-gray-800">{r.type_report}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="font-semibold text-gray-800">{r.type_report}</p>
+                  <p className="text-xs text-gray-500">
                     {new Date(r.period_start).toLocaleDateString('vi-VN')} →{' '}
-                    {new Date(r.period_end).toLocaleDateString('vi-VN')}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Tạo lúc {new Date(r.created_at).toLocaleString('vi-VN')}
+                    {new Date(r.period_end).toLocaleDateString('vi-VN')} •{' '}
+                    Tạo {new Date(r.created_at).toLocaleString('vi-VN')}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-amber-700 text-lg">{fmt(r.total_revenue)}</p>
+                <div className="text-right shrink-0">
+                  <p className="font-bold text-amber-700">{fmt(r.total_revenue)}</p>
                   <p className="text-xs text-gray-500">{r.total_orders} orders</p>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

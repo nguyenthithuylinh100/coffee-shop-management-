@@ -35,8 +35,8 @@ def get_bill_history(from_date: str, to_date: str):
         Bill.query
         .filter(
             Bill.status == 'Paid',
-            db.func.date(Bill.paymentDate) >= start,
-            db.func.date(Bill.paymentDate) <= end,
+            db.cast(Bill.paymentDate, db.Date) >= start,
+            db.cast(Bill.paymentDate, db.Date) <= end,
         )
         .order_by(Bill.paymentDate.desc())
         .all()

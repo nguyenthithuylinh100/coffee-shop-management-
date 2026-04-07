@@ -2,6 +2,7 @@ from database.db import db
 
 class OrderItem(db.Model):
     __tablename__ = 'order_item'        # khop SQL v3
+    __table_args__ = {'implicit_returning': False}
 
     orderItemID = db.Column('orderItemID', db.Integer,        primary_key=True, autoincrement=True)
     orderID     = db.Column('orderID',     db.Integer,        db.ForeignKey('cafe_order.orderID'), nullable=False)

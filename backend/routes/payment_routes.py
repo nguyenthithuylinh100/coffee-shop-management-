@@ -14,11 +14,11 @@ def unpaid_bills():
 @payment_bp.route('/bills/history', methods=['GET'])
 @require_roles('Manager')
 def bill_history():
-    """UC10: Lịch sử bill đã thanh toán theo khoảng ngày"""
+    """FIX: added missing bill history endpoint for Manager."""
     from_date = request.args.get('from')
     to_date   = request.args.get('to')
     if not from_date or not to_date:
-        return jsonify({'error': 'Cần truyền tham số from và to (YYYY-MM-DD)'}), 400
+        return jsonify({'error': 'Cần tham số from và to'}), 400
     result, err = payment_service.get_bill_history(from_date, to_date)
     if err:
         return jsonify({'error': err}), 400

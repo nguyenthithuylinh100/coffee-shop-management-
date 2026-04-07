@@ -3,6 +3,7 @@ from datetime import datetime
 
 class Bill(db.Model):
     __tablename__ = 'Bill'              # khop SQL v3
+    __table_args__ = {'implicit_returning': False}
 
     billID      = db.Column('billID',      db.Integer,        primary_key=True, autoincrement=True)
     tableID     = db.Column('tableID',     db.Integer,        db.ForeignKey('cafe_table.tableID'), nullable=False)
