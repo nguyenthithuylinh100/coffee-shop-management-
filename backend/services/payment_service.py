@@ -60,6 +60,14 @@ def process_payment(bill_id: int, payment_method: str, amount_received: float = 
         # Cho phép thử lại sau khi Failed
         pass
 
+    # Business rule: only allow payment when all related orders are completed.
+    incomplete_orders = [o.orderID for o in bill.orders if o.status != 'Completed']
+    if incomplete_orders:
+        return None, (
+            'Chưa thể thanh toán: còn order đang pha chế '
+            f"(#{', #'.join(str(i) for i in incomplete_orders)})."
+        )
+
     # Map tên phương thức từ frontend sang DB value
     method_map = {
         'Cash':    'Cash',
@@ -70,7 +78,8 @@ def process_payment(bill_id: int, payment_method: str, amount_received: float = 
 
     bill.status      = 'Paid'
     bill.method      = method_map.get(payment_method, payment_method)
-    bill.paymentDate = datetime.utcnow()
+    # Save local payment time so UI does not appear offset.
+    bill.paymentDate = datetime.now()
 
     # FIX: Cập nhật trạng thái bàn ngay trong Python
     table = Table.query.get(bill.tableID)

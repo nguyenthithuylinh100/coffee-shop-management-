@@ -7,7 +7,8 @@ class Order(db.Model):
     orderID     = db.Column('orderID',     db.Integer,    primary_key=True, autoincrement=True)
     billID      = db.Column('billID',      db.Integer,    db.ForeignKey('Bill.billID'), nullable=False)
     employeeID  = db.Column('employeeID',  db.Integer,    db.ForeignKey('Employee.employeeID'), nullable=True)
-    orderDate   = db.Column('orderDate',   db.DateTime,   default=datetime.utcnow)
+    # Use local server time so cashier/barista screens show expected local timestamps.
+    orderDate   = db.Column('orderDate',   db.DateTime,   default=datetime.now)
     status      = db.Column('status',      db.String(10), nullable=False, default='Preparing')
 
     bill     = db.relationship('Bill',     back_populates='orders')

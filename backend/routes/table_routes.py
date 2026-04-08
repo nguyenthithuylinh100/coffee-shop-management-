@@ -9,7 +9,13 @@ table_bp = Blueprint('tables', __name__)
 @table_bp.route('', methods=['GET'])
 @require_auth
 def get_tables():
-    tables = Table.query.order_by(Table.tableNumber).all()
+    # Hide internal takeaway pseudo-table (tableNumber=0) from normal table grid.
+    tables = (
+        Table.query
+        .filter(Table.tableNumber > 0)
+        .order_by(Table.tableNumber)
+        .all()
+    )
     table_ids = [t.tableID for t in tables]
 
     # Source of truth for UI availability: an existing Unpaid bill means occupied.

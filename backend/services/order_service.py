@@ -6,6 +6,20 @@ from models.table      import Table
 from models.menu_item  import MenuItem
 from datetime import datetime
 
+TAKEAWAY_TABLE_NUMBER = 0
+
+
+def _resolve_table(table_id: int):
+    # Support takeaway orders with table_id=0 by mapping to a hidden system table.
+    if int(table_id) == TAKEAWAY_TABLE_NUMBER:
+        table = Table.query.filter_by(tableNumber=TAKEAWAY_TABLE_NUMBER).first()
+        if not table:
+            table = Table(tableNumber=TAKEAWAY_TABLE_NUMBER, status='Available')
+            db.session.add(table)
+            db.session.flush()
+        return table
+    return Table.query.filter_by(tableID=table_id).first()
+
 
 def create_order(table_id: int, items: list, employee_id: int):
     """
@@ -14,7 +28,7 @@ def create_order(table_id: int, items: list, employee_id: int):
     FIX: compute Bill.amount in Python (not relying on SQL trigger).
     FIX: validate employee_id is not None before saving.
     """
-    table = Table.query.filter_by(tableID=table_id).first()
+    table = _resolve_table(table_id)
     if not table:
         return None, 'Không tìm thấy bàn'
     if not items:
@@ -34,9 +48,9 @@ def create_order(table_id: int, items: list, employee_id: int):
         resolved.append((menu_item, item_data))
 
     # Find existing Unpaid bill or create new one
-    bill = Bill.query.filter_by(tableID=table_id, status='Unpaid').first()
+    bill = Bill.query.filter_by(tableID=table.tableID, status='Unpaid').first()
     if not bill:
-        bill = Bill(tableID=table_id, amount=0, status='Unpaid')
+        bill = Bill(tableID=table.tableID, amount=0, status='Unpaid')
         db.session.add(bill)
         db.session.flush()
         # FIX: update table status in Python, do not rely on trigger

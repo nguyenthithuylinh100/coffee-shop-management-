@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import api from '../services/api'
 
 function fmt(n) {
@@ -12,14 +12,23 @@ function fmt(n) {
 //   [Thẻ/POS] Quẹt thẻ → Kết quả? → Ghi nhận / Báo lỗi thẻ
 // → Trạng thái == Thành công? → Cập nhật DB → In hóa đơn → Giao hóa đơn
 
-export default function PaymentPanel({ bills, onPaymentSuccess }) {
+export default function PaymentPanel({ bills, onPaymentSuccess, onRefresh }) {
   const [selectedBill, setSelectedBill] = useState(null)
   const [step, setStep]                 = useState('select') // select | method | cash | qr | card | done | failed
   const [method, setMethod]             = useState(null)
   const [cashReceived, setCashReceived] = useState('')
   const [loading, setLoading]           = useState(false)
+  const [refreshing, setRefreshing]     = useState(false)
   const [failReason, setFailReason]     = useState('')
   const [doneData, setDoneData]         = useState(null)
+
+  const getOrderProgress = (bill) => {
+    const orders = bill?.orders || []
+    const total = orders.length
+    const completed = orders.filter(o => o.status === 'Completed').length
+    const pending = total - completed
+    return { total, completed, pending, allCompleted: pending === 0 }
+  }
 
   const reset = () => {
     setSelectedBill(null); setStep('select'); setMethod(null)
@@ -67,10 +76,47 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
     ? parseFloat(cashReceived) - selectedBill.amount
     : null
 
+  const selectedProgress = selectedBill ? getOrderProgress(selectedBill) : null
+
+  // Keep selected bill status in sync after refresh/polling.
+  useEffect(() => {
+    if (!selectedBill) return
+    const latest = bills.find(b => b.bill_id === selectedBill.bill_id)
+    if (!latest) {
+      reset()
+      return
+    }
+    setSelectedBill(latest)
+  }, [bills, selectedBill])
+
+  // Poll unpaid bills periodically so cashier sees barista completion sooner.
+  useEffect(() => {
+    if (!onRefresh) return undefined
+    const id = setInterval(() => {
+      onRefresh()
+    }, 10000)
+    return () => clearInterval(id)
+  }, [onRefresh])
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return
+    setRefreshing(true)
+    try {
+      await onRefresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   /* ─────────────── STEP: select bill ─────────────── */
   if (step === 'select') return (
     <div>
-      <h3 className="font-bold text-gray-800 mb-3">Chọn Bill cần thanh toán</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-gray-800">Chọn Bill cần thanh toán</h3>
+        <button onClick={handleRefresh} className="btn-ghost text-xs" disabled={refreshing}>
+          {refreshing ? 'Đang làm mới...' : '🔄 Làm mới trạng thái'}
+        </button>
+      </div>
       {bills.length === 0 ? (
         <div className="text-center py-10 text-gray-400">
           <div className="text-4xl mb-2">🎉</div>
@@ -78,7 +124,9 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {bills.map(bill => (
+          {bills.map(bill => {
+            const progress = getOrderProgress(bill)
+            return (
             <button
               key={bill.bill_id}
               onClick={() => handleSelectBill(bill)}
@@ -90,6 +138,10 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
                   <p className="text-xs text-gray-500 mt-0.5">
                     {bill.orders?.length || 0} order • Mở lúc {bill.created_at ? new Date(bill.created_at).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : ''}
                   </p>
+                  <p className={`text-xs mt-1 font-medium ${progress.allCompleted ? 'text-emerald-600' : 'text-orange-600'}`}>
+                    {progress.completed}/{progress.total} order đã hoàn thành
+                    {progress.pending > 0 ? ` • còn ${progress.pending} đang pha` : ''}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-amber-700 text-lg">{fmt(bill.amount)}</p>
@@ -97,7 +149,8 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
                 </div>
               </div>
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -113,9 +166,29 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
 
       {/* Bill summary */}
       <div className="bg-gray-50 rounded-xl p-3 mb-4 max-h-48 overflow-y-auto">
+        {selectedProgress && (
+          <div className={`mb-3 rounded-xl px-3 py-2 text-xs font-medium border ${
+            selectedProgress.allCompleted
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-orange-50 text-orange-700 border-orange-200'
+          }`}>
+            {selectedProgress.allCompleted
+              ? `✅ Tất cả ${selectedProgress.total} order đã hoàn thành, có thể thanh toán`
+              : `⏳ Mới hoàn thành ${selectedProgress.completed}/${selectedProgress.total} order. Vui lòng đợi Barista hoàn tất trước khi thanh toán`}
+          </div>
+        )}
         {selectedBill.orders?.map(order => (
           <div key={order.order_id} className="mb-2 last:mb-0">
-            <p className="text-xs font-bold text-gray-400 mb-1">Order #{order.order_id}</p>
+            <p className="text-xs font-bold text-gray-400 mb-1 flex items-center gap-2">
+              <span>Order #{order.order_id}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                order.status === 'Completed'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {order.status === 'Completed' ? 'Đã xong' : 'Đang pha'}
+              </span>
+            </p>
             {order.items?.map(item => (
               <div key={item.order_item_id} className="flex justify-between text-sm py-0.5">
                 <span className="text-gray-700">{item.name} × {item.quantity}</span>
@@ -142,6 +215,7 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
           <button
             key={m.key}
             onClick={() => handleSelectMethod(m.key)}
+            disabled={!selectedProgress?.allCompleted}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all"
           >
             <span className="text-3xl">{m.icon}</span>
@@ -149,6 +223,11 @@ export default function PaymentPanel({ bills, onPaymentSuccess }) {
           </button>
         ))}
       </div>
+      {!selectedProgress?.allCompleted && (
+        <p className="text-xs text-orange-600 mt-3 text-center">
+          Chưa thể thanh toán vì vẫn còn order đang pha chế.
+        </p>
+      )}
     </div>
   )
 

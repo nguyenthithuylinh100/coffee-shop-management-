@@ -11,7 +11,8 @@ class Bill(db.Model):
     status      = db.Column('status',      db.String(10),     nullable=False, default='Unpaid')
     method      = db.Column('method',      db.String(10),     nullable=True)
     paymentDate = db.Column('paymentDate', db.DateTime,       nullable=True)
-    createdAt   = db.Column('createdAt',   db.DateTime,       default=datetime.utcnow)
+    # Use local server time for consistent UI display in cashier/manager.
+    createdAt   = db.Column('createdAt',   db.DateTime,       default=datetime.now)
 
     table  = db.relationship('Table', back_populates='bills')
     orders = db.relationship('Order', back_populates='bill', cascade='all, delete-orphan')

@@ -6,6 +6,12 @@ import OrderPanel   from '../components/OrderPanel'
 import PaymentPanel from '../components/PaymentPanel'
 import api          from '../services/api'
 
+const TAKEAWAY_TABLE = {
+  table_id: 0,
+  table_number: 'Mang đi',
+  status: 'Available',
+}
+
 function fmt(n) {
   return new Intl.NumberFormat('vi-VN').format(n) + '₫'
 }
@@ -155,6 +161,10 @@ export default function CashierPage() {
 
   const loadTableOrders = useCallback(async (tableId) => {
     if (!tableId) { setTableOrders(null); return }
+    if (tableId === TAKEAWAY_TABLE.table_id) {
+      setTableOrders(null)
+      return
+    }
     setTableOrdersLoading(true)
     try {
       const res = await api.get(`/orders/table/${tableId}`)
@@ -322,6 +332,19 @@ export default function CashierPage() {
             {/* Col 1+2 */}
             <div className="lg:col-span-2 space-y-4">
               <div className="card">
+                <div className="mb-3 pb-3 border-b border-gray-100">
+                  <button
+                    onClick={() => { setSelectedTable(TAKEAWAY_TABLE); setOrderItems([]) }}
+                    className={`w-full rounded-xl border-2 px-4 py-2.5 text-left transition-colors ${
+                      selectedTable?.table_id === TAKEAWAY_TABLE.table_id
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-sky-200 bg-sky-50 hover:border-sky-400'
+                    }`}
+                  >
+                    <div className="font-semibold text-gray-800">🛍️ Mua về (Mang đi)</div>
+                    <div className="text-xs text-gray-500">Không cần chọn bàn trong quán</div>
+                  </button>
+                </div>
                 <TableStatus
                   tables={tables}
                   selectedTableId={selectedTable ? selectedTable.table_id : null}
@@ -341,7 +364,9 @@ export default function CashierPage() {
                   <div className="card">
                     <div className="flex items-center gap-2 mb-4">
                       <span className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full">
-                        Bàn {selectedTable.table_number}
+                        {selectedTable.table_id === TAKEAWAY_TABLE.table_id
+                          ? 'Đơn mang đi'
+                          : `Bàn ${selectedTable.table_number}`}
                       </span>
                       <span className={selectedTable.status === 'Occupied' ? 'badge-occupied' : 'badge-available'}>
                         {selectedTable.status === 'Occupied' ? 'Đang có khách' : 'Trống'}
@@ -391,7 +416,11 @@ export default function CashierPage() {
         ) : (
           <div className="max-w-xl mx-auto">
             <div className="card">
-              <PaymentPanel bills={unpaidBills} onPaymentSuccess={loadData} />
+              <PaymentPanel
+                bills={unpaidBills}
+                onPaymentSuccess={loadData}
+                onRefresh={loadData}
+              />
             </div>
           </div>
         )}
