@@ -56,6 +56,19 @@ def create_order():
     return jsonify(result), 201
 
 
+@order_bp.route('/table/<int:table_id>', methods=['GET'])
+@require_roles('Cashier')
+def get_orders_by_table(table_id):
+    """
+    UC2 – Cashier xem các order đã đặt của bàn (thuộc bill Unpaid hiện tại).
+    Dùng để hiển thị "Đơn đã đặt" trong giao diện Cashier.
+    """
+    result, err = order_service.get_orders_by_table(table_id)
+    if err:
+        return jsonify({'error': err}), 404
+    return jsonify(result), 200
+
+
 @order_bp.route('/preparing', methods=['GET'])
 @require_roles('Barista')
 def get_preparing():
