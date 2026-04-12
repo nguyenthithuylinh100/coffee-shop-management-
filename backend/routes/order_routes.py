@@ -62,6 +62,16 @@ def get_preparing():
     return jsonify(order_service.get_preparing_orders()), 200
 
 
+@order_bp.route('/table/<int:table_id>', methods=['GET'])
+@require_roles('Cashier')
+def unpaid_bill_for_table(table_id):
+    """Open Unpaid bill + orders for the selected table (Cashier screen)."""
+    data, err = order_service.get_unpaid_bill_for_table(table_id)
+    if err:
+        return jsonify({'error': err}), 404
+    return jsonify(data), 200
+
+
 @order_bp.route('/<int:order_id>/complete', methods=['PUT'])
 @require_roles('Barista')
 def complete_order(order_id):

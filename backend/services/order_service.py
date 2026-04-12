@@ -100,6 +100,17 @@ def get_preparing_orders():
     return [o.to_dict(include_items=True) for o in orders]
 
 
+def get_unpaid_bill_for_table(table_id: int):
+    """
+    Current open bill for a physical table (cafe_table.tableID).
+    Used by Cashier UI to show existing orders while adding more items.
+    """
+    bill = Bill.query.filter_by(tableID=table_id, status='Unpaid').first()
+    if not bill:
+        return None, 'Không có bill chưa thanh toán cho bàn này'
+    return bill.to_dict(include_orders=True), None
+
+
 def complete_order(order_id: int):
     order = Order.query.get(order_id)
     if not order:

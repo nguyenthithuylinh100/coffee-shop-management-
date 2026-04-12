@@ -7,7 +7,7 @@ from models.order_item import OrderItem
 from models.menu_item  import MenuItem
 from middleware.auth_middleware import require_roles
 from datetime import date, datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, extract
 
 report_bp = Blueprint('reports', __name__)
 
@@ -84,7 +84,8 @@ def revenue_hourly():
     Used to draw the peak-time chart.
     """
     start, end = _parse_range()
-    hour_expr = func.DATEPART(db.text('hour'), Order.orderDate)
+    # Dùng extract() — SQLAlchemy map sang DATEPART trên SQL Server; tránh DATEPART(db.text(...)) lỗi cú pháp
+    hour_expr = extract('hour', Order.orderDate)
     rows = (
         db.session.query(
             hour_expr.label('hour'),
@@ -98,7 +99,7 @@ def revenue_hourly():
         .order_by(hour_expr)
         .all()
     )
-    # Fill gaps so chart always shows 0-23
+    # Fill gaps so chart always shows 7–22 (giờ mở quán)
     hour_map = {int(r.hour): int(r.orders) for r in rows}
     return jsonify([
         {'hour': h, 'label': f'{h:02d}:00', 'orders': hour_map.get(h, 0)}

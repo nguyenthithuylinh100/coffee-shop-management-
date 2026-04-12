@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { Receipt, Coffee, BarChart3, LogOut } from 'lucide-react'
 
 const ROLE_CONFIG = {
-  Cashier: { bg: 'from-blue-700 to-blue-800',   icon: '🧾', label: 'Thu Ngân' },
-  Barista: { bg: 'from-emerald-700 to-emerald-800', icon: '☕', label: 'Pha Chế' },
-  Manager: { bg: 'from-amber-800 to-amber-900',  icon: '📊', label: 'Quản Lý' },
+  Cashier: { bg: 'from-blue-700 to-blue-800',   Icon: Receipt, label: 'Thu Ngân' },
+  Barista: { bg: 'from-emerald-700 to-emerald-800', Icon: Coffee, label: 'Pha Chế' },
+  Manager: { bg: 'from-amber-800 to-amber-900',  Icon: BarChart3, label: 'Quản Lý' },
 }
 
 export default function Navbar({ title, rightContent }) {
@@ -13,6 +14,7 @@ export default function Navbar({ title, rightContent }) {
   const navigate = useNavigate()
   const [showMenu, setShowMenu] = useState(false)
   const cfg = ROLE_CONFIG[user?.role] || ROLE_CONFIG.Manager
+  const BrandIcon = cfg.Icon
 
   const handleLogout = () => {
     logout()
@@ -24,7 +26,9 @@ export default function Navbar({ title, rightContent }) {
       <div className="max-w-7xl mx-auto flex items-center justify-between h-14">
         {/* Left: brand + title */}
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{cfg.icon}</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+            <BrandIcon className="h-5 w-5 text-white" strokeWidth={2} />
+          </span>
           <div className="leading-tight">
             <div className="font-bold text-sm sm:text-base">Coffee Shop</div>
             <div className="text-xs opacity-70">{title}</div>
@@ -55,10 +59,12 @@ export default function Navbar({ title, rightContent }) {
                   <p className="text-xs text-gray-500">{cfg.label}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                 >
-                  <span>🚪</span> Đăng xuất
+                  <LogOut className="w-4 h-4 shrink-0" strokeWidth={2} />
+                  Đăng xuất
                 </button>
               </div>
             </>

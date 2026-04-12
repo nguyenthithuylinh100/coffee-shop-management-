@@ -1,3 +1,5 @@
+import { Armchair, Square, Check } from 'lucide-react'
+
 // UC1: Check Table Status – Thu ngân mở màn hình bàn, chọn bàn cần kiểm tra
 export default function TableStatus({ tables, selectedTableId, onSelect }) {
   const available = tables.filter(t => t.status === 'Available').length
@@ -34,9 +36,12 @@ export default function TableStatus({ tables, selectedTableId, onSelect }) {
                 }
               `}
             >
-              {/* Table icon */}
-              <div className={`text-xl mb-0.5 ${isOccupied ? 'opacity-100' : 'opacity-80'}`}>
-                {isOccupied ? '🪑' : '⬜'}
+              <div className={`mb-0.5 flex justify-center ${isOccupied ? 'text-orange-600' : 'text-emerald-600'}`}>
+                {isOccupied ? (
+                  <Armchair className="h-5 w-5" strokeWidth={2} />
+                ) : (
+                  <Square className="h-5 w-5 opacity-70" strokeWidth={2} />
+                )}
               </div>
               <div className={`font-bold ${isOccupied ? 'text-orange-700' : 'text-emerald-700'}`}>
                 Bàn {table.table_number}
@@ -47,8 +52,8 @@ export default function TableStatus({ tables, selectedTableId, onSelect }) {
               </div>
               {/* Selected indicator */}
               {isSelected && (
-                <div className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow">
-                  ✓
+                <div className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow">
+                  <Check className="h-3 w-3" strokeWidth={3} />
                 </div>
               )}
             </button>

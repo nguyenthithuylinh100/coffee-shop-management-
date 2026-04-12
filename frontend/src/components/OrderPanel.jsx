@@ -1,3 +1,5 @@
+import { ShoppingCart, X, CheckCircle2, Minus, Plus } from 'lucide-react'
+
 // UC3 + UC4: Add Item + Edit Order – danh sách món tạm, chỉnh số lượng, ghi chú, xoá
 function fmt(n) {
   return new Intl.NumberFormat('vi-VN').format(n) + '₫'
@@ -20,7 +22,7 @@ export default function OrderPanel({ orderItems, onRemove, onChangeQty, onChange
       {/* Empty state */}
       {orderItems.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-300 py-8">
-          <div className="text-5xl mb-3">🛒</div>
+          <ShoppingCart className="h-12 w-12 mb-3 text-gray-200" strokeWidth={1.5} />
           <p className="text-sm font-medium text-gray-400">Chưa có món nào</p>
           <p className="text-xs text-gray-400 mt-1">Chọn món từ menu bên trái</p>
         </div>
@@ -37,19 +39,31 @@ export default function OrderPanel({ orderItems, onRemove, onChangeQty, onChange
                 {/* UC4: Điều chỉnh số lượng */}
                 <div className="flex items-center gap-1 shrink-0">
                   <button
+                    type="button"
                     onClick={() => onChangeQty(idx, item.quantity - 1)}
-                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 font-bold flex items-center justify-center transition-colors text-sm"
-                  >−</button>
+                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 flex items-center justify-center transition-colors"
+                    aria-label="Giảm"
+                  >
+                    <Minus className="h-4 w-4" strokeWidth={2.5} />
+                  </button>
                   <span className="w-6 text-center text-sm font-bold text-gray-800">{item.quantity}</span>
                   <button
+                    type="button"
                     onClick={() => onChangeQty(idx, item.quantity + 1)}
-                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 font-bold flex items-center justify-center transition-colors text-sm"
-                  >+</button>
+                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 flex items-center justify-center transition-colors"
+                    aria-label="Tăng"
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={2.5} />
+                  </button>
                   {/* UC4: Xoá món */}
                   <button
+                    type="button"
                     onClick={() => onRemove(idx)}
-                    className="w-7 h-7 rounded-lg bg-white border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 flex items-center justify-center transition-colors text-xs ml-1"
-                  >✕</button>
+                    className="w-7 h-7 rounded-lg bg-white border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 flex items-center justify-center transition-colors ml-1"
+                    aria-label="Xóa món"
+                  >
+                    <X className="h-4 w-4" strokeWidth={2} />
+                  </button>
                 </div>
               </div>
               {/* UC4: Ghi chú đặc biệt (ít đường, không đá...) */}
@@ -79,6 +93,7 @@ export default function OrderPanel({ orderItems, onRemove, onChangeQty, onChange
         )}
         {/* UC2: Cashier nhấn "Xác nhận Order" */}
         <button
+          type="button"
           onClick={onConfirm}
           disabled={orderItems.length === 0 || loading}
           className="btn-primary w-full flex items-center justify-center gap-2"
@@ -89,7 +104,10 @@ export default function OrderPanel({ orderItems, onRemove, onChangeQty, onChange
               Đang gửi...
             </>
           ) : (
-            <> ✅ Xác Nhận Order</>
+            <>
+              <CheckCircle2 className="h-5 w-5 shrink-0" strokeWidth={2} />
+              Xác nhận Order
+            </>
           )}
         </button>
       </div>

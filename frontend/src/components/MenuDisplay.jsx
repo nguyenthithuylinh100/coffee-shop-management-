@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Search, X, UtensilsCrossed } from 'lucide-react'
 
 function fmt(n) {
   return new Intl.NumberFormat('vi-VN').format(n) + '₫'
@@ -28,7 +29,9 @@ export default function MenuDisplay({ menuItems, onAddItem }) {
   if (menuItems.length === 0) {
     return (
       <div className="text-center py-10 text-gray-400">
-        <div className="text-4xl mb-2">😔</div>
+        <div className="mb-2 flex justify-center">
+          <UtensilsCrossed className="h-10 w-10 text-gray-300" strokeWidth={1.5} />
+        </div>
         <p className="text-sm">Không có món nào khả dụng</p>
       </div>
     )
@@ -38,7 +41,7 @@ export default function MenuDisplay({ menuItems, onAddItem }) {
     <div>
       {/* Search bar */}
       <div className="relative mb-3">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" strokeWidth={2} />
         <input
           type="text"
           className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm
@@ -49,9 +52,13 @@ export default function MenuDisplay({ menuItems, onAddItem }) {
         />
         {search && (
           <button
+            type="button"
             onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >✕</button>
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-lg hover:bg-gray-100"
+            aria-label="Xóa tìm kiếm"
+          >
+            <X className="h-4 w-4" strokeWidth={2} />
+          </button>
         )}
       </div>
 
