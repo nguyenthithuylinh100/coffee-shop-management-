@@ -20,6 +20,10 @@ function fmt(n) {
   return new Intl.NumberFormat('vi-VN').format(n) + '₫'
 }
 
+function isOrderCompleted(status) {
+  return String(status || '').trim().toLowerCase() === 'completed'
+}
+
 // UC5: Process Payment
 // Luồng: Thu ngân yêu cầu → Hiển thị phương thức → Chọn phương thức →
 //   [Tiền mặt] Nhận tiền → Đủ? → Ghi nhận / Báo thiếu
@@ -39,11 +43,11 @@ export default function PaymentPanel({ bills, onPaymentSuccess, onRefresh }) {
   const { success: toastSuccess }       = useToast()
 
   const getOrderProgress = (bill) => {
-    const orders = bill?.orders || []
+    const orders = Array.isArray(bill?.orders_status) ? bill.orders_status : (bill?.orders || [])
     const total = orders.length
-    const completed = orders.filter(o => o.status === 'Completed').length
+    const completed = orders.filter(o => isOrderCompleted(o?.status)).length
     const pending = total - completed
-    return { total, completed, pending, allCompleted: pending === 0 }
+    return { total, completed, pending, allCompleted: total > 0 && pending === 0 }
   }
 
   const reset = () => {
@@ -215,11 +219,11 @@ export default function PaymentPanel({ bills, onPaymentSuccess, onRefresh }) {
             <p className="text-xs font-bold text-gray-400 mb-1 flex items-center gap-2">
               <span>Order #{order.order_id}</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                order.status === 'Completed'
+                isOrderCompleted(order.status)
                   ? 'bg-emerald-100 text-emerald-700'
                   : 'bg-blue-100 text-blue-700'
               }`}>
-                {order.status === 'Completed' ? 'Đã xong' : 'Đang pha'}
+                {isOrderCompleted(order.status) ? 'Đã xong' : 'Đang pha'}
               </span>
             </p>
             {order.items?.map(item => (

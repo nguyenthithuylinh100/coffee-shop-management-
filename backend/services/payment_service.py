@@ -3,6 +3,30 @@ from models.bill  import Bill
 from models.table import Table
 from datetime import datetime
 
+def _is_completed(status: str) -> bool:
+    return str(status or '').strip().lower() == 'completed'
+
+def _serialize_unpaid_bill(bill: Bill):
+    """
+    Chuẩn hóa payload cho Cashier:
+    - orders_status: danh sách order dùng cho tracker
+    - is_ready: tất cả order đã Completed hay chưa
+    """
+    data = bill.to_dict(include_orders=True)
+    orders = data.get('orders') or []
+    data['orders_status'] = [
+        {
+            'order_id': o.get('order_id'),
+            'status': o.get('status'),
+            'items': o.get('items') or [],
+        }
+        for o in orders
+    ]
+    total = len(data['orders_status'])
+    done = sum(1 for o in data['orders_status'] if _is_completed(o.get('status')))
+    data['is_ready'] = total > 0 and done == total
+    return data
+
 
 def get_unpaid_bills():
     """Danh sách Bill Unpaid kèm chi tiết orders"""
@@ -12,7 +36,7 @@ def get_unpaid_bills():
         .order_by(Bill.createdAt.asc())
         .all()
     )
-    return [b.to_dict(include_orders=True) for b in bills]
+    return [_serialize_unpaid_bill(b) for b in bills]
 
 
 def get_bill_detail(bill_id: int):

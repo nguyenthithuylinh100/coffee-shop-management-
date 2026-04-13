@@ -35,6 +35,24 @@ function fmt(n) {
   return new Intl.NumberFormat('vi-VN').format(n) + '₫'
 }
 
+function isOrderCompleted(status) {
+  return String(status || '').trim().toLowerCase() === 'completed'
+}
+
+function normalizeBill(raw) {
+  const orders = Array.isArray(raw?.orders) ? raw.orders : []
+  const ordersStatus = Array.isArray(raw?.orders_status) ? raw.orders_status : orders
+  const total = ordersStatus.length
+  const completed = ordersStatus.filter(o => isOrderCompleted(o?.status)).length
+  const isReady = total > 0 && completed === total
+  return {
+    ...raw,
+    orders,
+    orders_status: ordersStatus,
+    is_ready: typeof raw?.is_ready === 'boolean' ? raw.is_ready : isReady,
+  }
+}
+
 /** Panel "Đơn đã đặt" — giữ nguyên từ bản gốc */
 function ExistingOrdersPanel({ tableOrders, loading }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -78,9 +96,9 @@ function ExistingOrdersPanel({ tableOrders, loading }) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-500">Order #{order.order_id}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                    order.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                    isOrderCompleted(order.status) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
                   }`}>
-                    {order.status === 'Completed' ? (
+                    {isOrderCompleted(order.status) ? (
                       <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} /> Hoàn thành</span>
                     ) : (
                       <span className="inline-flex items-center gap-1"><Hourglass className="h-3.5 w-3.5" strokeWidth={2} /> Đang pha</span>
@@ -130,7 +148,7 @@ function ExistingOrdersPanel({ tableOrders, loading }) {
 
 /** Badge trạng thái order trong tracker */
 function OrderStatusBadge({ status }) {
-  if (status === 'Completed')
+  if (isOrderCompleted(status))
     return (
       <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold inline-flex items-center gap-1">
         <Check className="h-3 w-3" strokeWidth={3} /> Xong
@@ -171,7 +189,7 @@ function BaristaTracker({ bills, onRefresh }) {
                     )}
                   </span>
                   <span className="text-xs text-amber-600 font-medium">
-                    {bill.orders_status?.filter(o => o.status === 'Completed').length ?? 0}
+                    {bill.orders_status?.filter(o => isOrderCompleted(o?.status)).length ?? 0}
                     /{bill.orders_status?.length ?? 0} order xong
                   </span>
                 </div>
@@ -227,7 +245,8 @@ export default function CashierPage() {
   const loadBills = useCallback(async () => {
     try {
       const res = await api.get('/payment/bills/unpaid')
-      setUnpaidBills(res.data)
+      const normalized = Array.isArray(res.data) ? res.data.map(normalizeBill) : []
+      setUnpaidBills(normalized)
     } catch {} finally {
       setLoadingBills(false)
     }
@@ -244,7 +263,8 @@ export default function CashierPage() {
       ])
       setTables(t.data)
       setMenuItems(m.data)
-      setUnpaidBills(b.data)
+      const normalized = Array.isArray(b.data) ? b.data.map(normalizeBill) : []
+      setUnpaidBills(normalized)
     } catch {
       error('Không thể tải dữ liệu')
     } finally {
@@ -603,7 +623,7 @@ export default function CashierPage() {
                 <PaymentPanel
                   bills={unpaidBills.filter(b => b.is_ready)}
                   onPaymentSuccess={loadData}
-                  onRefresh={loadData}
+                  onRefresh={loadBills}
                 />
               ) : (
                 <div className="text-center py-10 text-gray-400">
