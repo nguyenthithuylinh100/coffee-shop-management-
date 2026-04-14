@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flasgger import Swagger
 from database.db import db
 from config import DevelopmentConfig
 
@@ -14,6 +15,34 @@ def create_app(config=DevelopmentConfig):
     cors_origins = app.config.get('CORS_ORIGINS') or []
     CORS(app, resources={r"/*": {"origins": cors_origins}})
     db.init_app(app)
+
+    # Initialize Swagger
+    app.config['SWAGGER'] = {
+        'title': 'Coffee Shop Management API',
+        'uiversion': 3
+    }
+    
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Coffee Shop Management API",
+            "description": "API Documentation",
+            "version": "1.0.0"
+        },
+        "securityDefinitions": {
+            "BearerAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "Add token exactly as: Bearer <your_token>"
+            }
+        },
+        "security": [
+            {
+                "BearerAuth": []
+            }
+        ]
+    }
 
     # Import models
     from models import employee, table, bill, order, order_item, menu_item, inventory, menu_item_ingredient
@@ -35,6 +64,8 @@ def create_app(config=DevelopmentConfig):
     app.register_blueprint(table_bp, url_prefix='/tables')
     app.register_blueprint(inventory_bp, url_prefix='/inventory')
     app.register_blueprint(report_bp, url_prefix='/reports')
+
+    Swagger(app, template=swagger_template)
 
     # Init DB
     with app.app_context():

@@ -29,6 +29,17 @@ def _parse_range():
 @report_bp.route('/summary', methods=['GET'])
 @require_roles('Manager')
 def daily_summary():
+    """
+    Get daily summary
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Daily summary
+    """
     today = date.today()
     paid_today = Bill.query.filter(
         Bill.status == 'Paid',
@@ -50,8 +61,15 @@ def daily_summary():
 @require_roles('Manager')
 def revenue_daily():
     """
-    FIX: new endpoint – returns per-day revenue for the selected range.
-    Used to draw the revenue bar chart on the Reports page.
+    Get daily revenue
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Daily revenue
     """
     start, end = _parse_range()
     rows = (
@@ -80,8 +98,15 @@ def revenue_daily():
 @require_roles('Manager')
 def revenue_hourly():
     """
-    FIX: new endpoint – shows which hours of the day have most orders.
-    Used to draw the peak-time chart.
+    Get hourly revenue
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Hourly revenue
     """
     start, end = _parse_range()
     # Dùng extract() — SQLAlchemy map sang DATEPART trên SQL Server; tránh DATEPART(db.text(...)) lỗi cú pháp
@@ -112,7 +137,15 @@ def revenue_hourly():
 @require_roles('Manager')
 def top_items():
     """
-    FIX: new endpoint – best-selling drinks ranked by quantity sold.
+    Get top selling items
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Top selling items
     """
     start, end = _parse_range()
     limit = int(request.args.get('limit', 10))
@@ -149,7 +182,17 @@ def top_items():
 @report_bp.route('/revenue/category', methods=['GET'])
 @require_roles('Manager')
 def revenue_by_category():
-    """FIX: new endpoint – breakdown of revenue per menu category."""
+    """
+    Get revenue by category
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Revenue by category
+    """
     start, end = _parse_range()
     rows = (
         db.session.query(
@@ -181,6 +224,17 @@ def revenue_by_category():
 @report_bp.route('', methods=['GET'])
 @require_roles('Manager')
 def get_reports():
+    """
+    Get all reports
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of reports
+    """
     reports = Report.query.order_by(Report.createdAt.desc()).all()
     return jsonify([r.to_dict() for r in reports]), 200
 
@@ -188,6 +242,17 @@ def get_reports():
 @report_bp.route('', methods=['POST'])
 @require_roles('Manager')
 def generate_report():
+    """
+    Generate a new report
+    ---
+    tags:
+      - Reports
+    security:
+      - BearerAuth: []
+    responses:
+      201:
+        description: Report generated
+    """
     data = request.get_json()
     if not data or not data.get('period_start') or not data.get('period_end'):
         return jsonify({'error': 'period_start and period_end required'}), 400

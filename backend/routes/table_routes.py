@@ -9,6 +9,18 @@ table_bp = Blueprint('tables', __name__)
 @table_bp.route('', methods=['GET'])
 @require_auth
 def get_tables():
+    """
+    Get all tables
+    ---
+    tags:
+      - Tables
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all tables
+    """
+
     # Hide internal takeaway pseudo-table (tableNumber=0) from normal table grid.
     tables = (
         Table.query
@@ -40,6 +52,17 @@ def get_tables():
 @table_bp.route('', methods=['POST'])
 @require_roles('Manager')
 def create_table():
+    """
+    Create a new table
+    ---
+    tags:
+      - Tables
+    security:
+      - BearerAuth: []
+    responses:
+      201:
+        description: Created successfully
+    """
     data = request.get_json()
     if not data or data.get('table_number') is None:
         return jsonify({'error': 'table_number is required'}), 400
@@ -52,6 +75,17 @@ def create_table():
 @table_bp.route('/<int:table_id>', methods=['DELETE'])
 @require_roles('Manager')
 def delete_table(table_id):
+    """
+    Delete a table
+    ---
+    tags:
+      - Tables
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Deleted successfully
+    """
     table = Table.query.get_or_404(table_id)
     db.session.delete(table)
     db.session.commit()

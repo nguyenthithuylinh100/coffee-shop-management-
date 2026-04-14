@@ -8,6 +8,17 @@ order_bp = Blueprint('orders', __name__)
 @order_bp.route('', methods=['POST'])
 @require_roles('Cashier')
 def create_order():
+    """
+    Create a new order
+    ---
+    tags:
+      - Orders
+    security:
+      - BearerAuth: []
+    responses:
+      201:
+        description: Order created successfully
+    """
     data = request.get_json(silent=True) or {}
     current_app.logger.info(
         'create_order called: user=%s role=%s table_id=%s items_count=%s',
@@ -59,6 +70,17 @@ def create_order():
 @order_bp.route('/preparing', methods=['GET'])
 @require_roles('Barista')
 def get_preparing():
+    """
+    Get preparing orders
+    ---
+    tags:
+      - Orders
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of preparing orders
+    """
     return jsonify(order_service.get_preparing_orders()), 200
 
 
@@ -75,6 +97,17 @@ def unpaid_bill_for_table(table_id):
 @order_bp.route('/<int:order_id>/complete', methods=['PUT'])
 @require_roles('Barista')
 def complete_order(order_id):
+    """
+    Complete an order
+    ---
+    tags:
+      - Orders
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Order completed successfully
+    """
     result, err = order_service.complete_order(order_id)
     if err:
         return jsonify({'error': err}), 400
@@ -85,9 +118,15 @@ def complete_order(order_id):
 @require_roles('Manager')
 def order_history():
     """
-    UC10 – Order history for Manager.
-    FIX: new endpoint – was missing, caused empty Order History page.
-    Query params: from=YYYY-MM-DD&to=YYYY-MM-DD
+    Get order history
+    ---
+    tags:
+      - Orders
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Order history
     """
     from_date = request.args.get('from')
     to_date   = request.args.get('to')
@@ -99,8 +138,15 @@ def order_history():
 @require_auth
 def debug_check_create_order():
     """
-    Lightweight debug endpoint for create-order flow.
-    Helps diagnose: missing token, wrong role, missing employee_id, bad payload.
+    Debug create order
+    ---
+    tags:
+      - Orders
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Debug info
     """
     payload = request.get_json(silent=True) or {}
     role = (g.user.get('role') or '').strip()

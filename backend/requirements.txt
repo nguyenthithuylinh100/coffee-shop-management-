@@ -14,3 +14,4 @@ pyodbc==5.1.0
 # - Update SQLALCHEMY_DATABASE_URI in config.py to:
 #   sqlite:///coffee_shop.db
 # - Remove pyodbc from requirements
+flasgger==0.9.7.1

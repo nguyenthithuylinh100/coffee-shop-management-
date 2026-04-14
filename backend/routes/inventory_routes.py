@@ -7,16 +7,49 @@ inventory_bp = Blueprint('inventory', __name__)
 @inventory_bp.route('', methods=['GET'])
 @require_roles('Manager')
 def get_inventory():
+    """
+    Get all inventory items
+    ---
+    tags:
+      - Inventory
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of inventory items
+    """
     return jsonify(inventory_service.get_all_inventory()), 200
 
 @inventory_bp.route('/alerts', methods=['GET'])
 @require_roles('Manager')
 def low_stock_alerts():
+    """
+    Get low stock alerts
+    ---
+    tags:
+      - Inventory
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of low stock alerts
+    """
     return jsonify(inventory_service.get_low_stock_alerts()), 200
 
 @inventory_bp.route('', methods=['POST'])
 @require_roles('Manager')
 def create_inventory():
+    """
+    Create a new inventory item
+    ---
+    tags:
+      - Inventory
+    security:
+      - BearerAuth: []
+    responses:
+      201:
+        description: Created successfully
+    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Request body is required'}), 400
@@ -36,6 +69,17 @@ def create_inventory():
 @inventory_bp.route('/<int:inventory_id>', methods=['PUT'])
 @require_roles('Manager')
 def update_inventory(inventory_id):
+    """
+    Update an inventory item's stock
+    ---
+    tags:
+      - Inventory
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Updated successfully
+    """
     data = request.get_json()
     if not data or data.get('quantity') is None:
         return jsonify({'error': 'quantity is required'}), 400
