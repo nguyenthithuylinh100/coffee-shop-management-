@@ -1,0 +1,17 @@
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-cors==4.0.1
+PyJWT==2.8.0
+bcrypt==4.1.3
+pyodbc==5.1.0
+
+# SQL Server notes:
+# - On Windows: ODBC driver is assumed to already be installed.
+# - On Linux: install unixodbc-dev, then ODBC Driver 17 for SQL Server.
+# - pip install pyodbc
+
+# If you don't have SQL Server, use SQLite for dev:
+# - Update SQLALCHEMY_DATABASE_URI in config.py to:
+#   sqlite:///coffee_shop.db
+# - Remove pyodbc from requirements
+flasgger==0.9.7.1
