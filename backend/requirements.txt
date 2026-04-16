@@ -15,5 +15,8 @@ pyodbc==5.1.0
 #   sqlite:///coffee_shop.db
 # - Remove pyodbc from requirements
 flasgger==0.9.7.1
+<<<<<<< HEAD
 anthropic==0.25.0
 apscheduler==3.10.4
+=======
+>>>>>>> 95de618a1511b065ff38438b70b6e4fdc6a237fe
