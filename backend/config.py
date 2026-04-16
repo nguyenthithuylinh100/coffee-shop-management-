@@ -15,11 +15,7 @@ class Config:
 
     params = urllib.parse.quote_plus(
         "DRIVER={ODBC Driver 17 for SQL Server};"
-<<<<<<< HEAD
                 "SERVER=THUYLINH\SQLEXPRESS;"
-=======
-        "SERVER=DESKTOP-U195TOE\SQLEXPRESS;"
->>>>>>> 95de618a1511b065ff38438b70b6e4fdc6a237fe
         "DATABASE=CoffeeShop;"
         "Trusted_Connection=yes;"
         "TrustServerCertificate=yes;"
